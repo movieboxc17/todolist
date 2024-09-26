@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f7f7f8;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            transition: background-color 0.3s;
+        }
+        .sidebar {
+            width: 250px;
+            background: #007aff;
+            color: white;
+            position: fixed;
+            height: 100%;
+            right: -250px; /* Initially hidden */
+            transition: right 0.3s;
+            padding: 20px;
+            border-radius: 10px 0 0 10px; /* Rounded corners on the left */
+            z-index: 1000; /* Ensure it appears above other content */
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+        }
+        .sidebar a {
+            display: block;
+            color: white;
+            margin: 10px 0;
+            text-decoration: none;
+            transition: color 0.3s;
+            padding: 10px;
+            border-radius: 5px; /* Rounded corners for links */
+        }
+        .sidebar a:hover {
+            background: rgba(255, 255, 255, 0.1); /* Light hover effect */
+            color: #f0f0f0;
+        }
+        .container {
+            padding: 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            width: 800px; /* Set a fixed width */
+            max-height: 80vh; /* Max height */
+            overflow-y: auto; /* Allow scrolling */
+            display: flex;
+            flex-direction: column; /* Stack elements vertically */
+            transition: background-color 0.3s; /* Transition for dark mode */
+            position: relative; /* Position relative for proper alignment */
+            margin: 0 auto; /* Center horizontally */
+        }
+        h1, h2 {
+            color: #333;
+            margin: 0 0 20px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            max-height: 300px; /* Limit height for scrolling */
+            overflow-y: auto; /* Enable vertical scrolling */
+        }
+        li {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+        li.checked {
+            text-decoration: line-through;
+            color: #cccccc; /* Light grey for completed tasks */
+            background-color: #ffcccc; /* Darker red for completed tasks */
+        }
+        .uncompleted {
+            color: #ff4d4d; /* Dark red for uncompleted tasks */
+        }
+        .priority-low {
+            background-color: #b2f7b2; /* Darker green */
+        }
+        .priority-medium {
+            background-color: #ffecb3; /* Darker orange */
+        }
+        .priority-high {
+            background-color: #ffb3b3; /* Darker red */
+        }
+        input[type="text"], select {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            padding: 10px;
+            border: none;
+            background-color: #007aff;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #005bb5;
+        }
+        .dark-mode {
+            background-color: #1c1c1e; /* Darker background for dark mode */
+            color: #f4f4f4; /* Light text color for dark mode */
+        }
+        .dark-mode .container {
+            background-color: #2c2c2e; /* Darker background for the container */
+        }
+        .dark-mode h1, .dark-mode h2 {
+            color: #e4e4e4; /* Lighter headings for dark mode */
+        }
+        .dark-mode input[type="text"], .dark-mode select {
+            background: #444; /* Dark background for inputs */
+            color: #f4f4f4; /* Light text color for better contrast */
+            border: 1px solid #666;
+        }
+        .dark-mode button {
+            background-color: #555; /* Button color in dark mode */
+            color: #f4f4f4; /* Light text color on buttons */
+        }
+        .dark-mode button:hover {
+            background-color: #777; /* Button hover color in dark mode */
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+    <h2>Menu</h2>
+    <a href="#" onclick="showTasks()">View All Tasks</a>
+    <a href="#" onclick="showCompletedTasks()">View Completed Tasks</a>
+    <a href="#" onclick="toggleDarkMode()">Toggle Dark Mode</a>
+</div>
+
+<div class="container" id="container">
+    <button onclick="toggleSidebar()">☰ Menu</button>
+    <h1>To-Do List</h1>
+    <input type="text" id="taskInput" placeholder="Add a new task...">
+    
+    <select id="prioritySelect">
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High">High</option>
+    </select>
+    <button onclick="addTask()">Add Task</button>
+
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search tasks..." oninput="searchTasks()">
+    </div>
+
+    <h2>Tasks</h2>
+    <ul id="taskList"></ul>
+</div>
+
+<script>
+    const taskListElement = document.getElementById("taskList");
+    const taskInput = document.getElementById("taskInput");
+    const prioritySelect = document.getElementById("prioritySelect");
+    const searchInput = document.getElementById("searchInput");
+    const sidebar = document.getElementById("sidebar");
+
+    document.addEventListener('DOMContentLoaded', loadTasks);
+
+    function toggleSidebar() {
+        const isOpen = sidebar.style.right === '0px';
+        sidebar.style.right = isOpen ? '-250px' : '0px'; // Slide in/out
+    }
+
+    function addTask() {
+        const taskText = taskInput.value.trim();
+        const taskPriority = prioritySelect.value;
+
+        if (taskText === "") {
+            alert("Please enter a task.");
+            return;
+        }
+
+        const task = {
+            text: taskText,
+            priority: taskPriority,
+            completed: false,
+            createdAt: new Date().toLocaleString()
+        };
+
+        saveTaskToLocalStorage(task);
+        renderTasks();
+        taskInput.value = ""; // Clear the input field
+    }
+
+    function saveTaskToLocalStorage(task) {
+        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        tasks.push(task);
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    function loadTasks() {
+        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        renderTasks(tasks);
+    }
+
+    function renderTasks(tasks = JSON.parse(localStorage.getItem('tasks')) || []) {
+        taskListElement.innerHTML = "";
+
+        tasks.forEach(task => {
+            const li = createTaskElement(task);
+            taskListElement.appendChild(li);
+        });
+    }
+
+    function createTaskElement(task) {
+        const li = document.createElement("li");
+        li.textContent = `${task.text} (${task.priority}) - Created at: ${task.createdAt}`;
+        li.classList.toggle("checked", task.completed);
+        li.classList.add(`priority-${task.priority.toLowerCase()}`);
+
+        if (!task.completed) {
+            li.classList.add("uncompleted");
+        }
+
+        li.onclick = function() {
+            task.completed = !task.completed;
+            li.classList.toggle("checked");
+            li.classList.toggle("uncompleted", !task.completed);
+            updateTaskInLocalStorage(task);
+            renderTasks();
+        };
+
+        const deleteButton = document.createElement("button");
+        deleteButton.textContent = "Delete";
+        deleteButton.onclick = function(event) {
+            event.stopPropagation();
+            deleteTaskFromLocalStorage(task);
+            renderTasks();
+        };
+
+        li.appendChild(deleteButton);
+        return li;
+    }
+
+    function updateTaskInLocalStorage(updatedTask) {
+        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        const taskIndex = tasks.findIndex(task => task.text === updatedTask.text && task.priority === updatedTask.priority);
+        tasks[taskIndex] = updatedTask;
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    function deleteTaskFromLocalStorage(deletedTask) {
+        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        const updatedTasks = tasks.filter(task => task.text !== deletedTask.text || task.priority !== deletedTask.priority);
+        localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+    }
+
+    function showTasks() {
+        renderTasks();
+    }
+
+    function showCompletedTasks() {
+        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        const completedTasks = tasks.filter(task => task.completed);
+        renderTasks(completedTasks);
+    }
+
+    function searchTasks() {
+        const searchValue = searchInput.value.toLowerCase();
+        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        const searchedTasks = tasks.filter(task => task.text.toLowerCase().includes(searchValue));
+        renderTasks(searchedTasks);
+    }
+
+    function toggleDarkMode() {
+        document.body.classList.toggle("dark-mode");
+        const container = document.getElementById("container");
+        container.classList.toggle("dark-mode");
+    }
+</script>
+
+</body>
+</html>
